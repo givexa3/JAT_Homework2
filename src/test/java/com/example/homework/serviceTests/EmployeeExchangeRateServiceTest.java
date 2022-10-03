@@ -1,43 +1,63 @@
 package com.example.homework.serviceTests;
 
-import com.example.homework.repository.EmployeeExchangeRateRepository;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.example.homework.service.serviceImpl.EmployeeExchangeRateService;
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.Calendar;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.Year;
 
 @SpringBootTest
-@RunWith(SpringRunner.class)
-class EmployeeExchangeRateServiceTest {
+class EmployeeExchangeRateServiceTest{
 
     @Autowired
     private EmployeeExchangeRateService employeeExchangeRateService;
-    @Autowired
-    private EmployeeExchangeRateRepository employeeExchangeRateRepository;
 
     @Test
-    void addExchangeRate() {
+    void addExchangeRateTest(){
 
-        final int YEAR = 2022;
-        final int MONTH = 12;
+        final Year YEAR = Year.of(2022);
+        final Month MONTH = Month.DECEMBER;
         final int DAY = 31;
         final double EXCHANGE_RATE = 0;
 
-        Calendar cal = Calendar.getInstance();
-        cal.set(YEAR, MONTH-1, DAY);
+        LocalDate date = LocalDate.of(YEAR.getValue(), MONTH, DAY);
 
-        //first you should do checking if current rate exist in DB :D then u should add
+        if(!employeeExchangeRateService.checkIfExchangeRateExists(date, EXCHANGE_RATE)){
+            employeeExchangeRateService.addExchangeRate(date, EXCHANGE_RATE);
+        }
 
-        //btw researc on runWith and springboottest annotation why we need irr
-        //p.s needs roll back also to not create new exchange rate everytime...
-        employeeExchangeRateService.addExchangeRate(cal, EXCHANGE_RATE);
-        assertEquals(0, employeeExchangeRateRepository.findByDate(cal).getRate());
+        assertTrue(employeeExchangeRateService.checkIfExchangeRateExists(date, EXCHANGE_RATE));
+
+    }
+
+    @Test
+    void getExchangeRateTest(){
+
+        final double EXCHANGE_RATE = 2.945;
+        final Month MONTH = Month.MAY;
+
+        assertEquals(EXCHANGE_RATE, employeeExchangeRateService.getExchangeRate(MONTH), 1);
+
+    }
+
+    @Test
+    void checkIfExchangeRateExistsTest(){
+
+        final double EXCHANGE_RATE = 3.39;
+        final Year YEAR = Year.of(2022);
+        final Month MONTH = Month.MARCH;
+        final int DAY = 7;
+
+        LocalDate date = LocalDate.of(YEAR.getValue(), MONTH, DAY);
+
+        assertTrue(employeeExchangeRateService.checkIfExchangeRateExists(date, EXCHANGE_RATE));
 
     }
 }

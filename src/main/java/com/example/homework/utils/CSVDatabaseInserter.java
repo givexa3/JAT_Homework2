@@ -4,25 +4,16 @@ import com.example.homework.service.serviceImpl.EmployeeExchangeRateService;
 import com.example.homework.service.serviceImpl.EmployeeSalaryService;
 import org.springframework.stereotype.Component;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-
+import java.io.*;
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.Year;
+import java.time.format.DateTimeFormatter;
 
 @Component
 public class CSVDatabaseInserter  {
-
-    private final String SPLIT_BY = ",";
-
-    //should be changed to stringbuilder
-    //but since file is not big its not a big issue
-    private String line = "";
-
-    private EmployeeSalaryService employeeSalaryService;
-    private EmployeeExchangeRateService employeeExchangeRateService;
+    private final EmployeeSalaryService employeeSalaryService;
+    private final EmployeeExchangeRateService employeeExchangeRateService;
 
     public CSVDatabaseInserter(EmployeeSalaryService employeeSalaryService,
                                EmployeeExchangeRateService employeeExchangeRateService) {
@@ -30,9 +21,13 @@ public class CSVDatabaseInserter  {
         this.employeeExchangeRateService = employeeExchangeRateService;
     }
 
+    public void insertEmployeeSalaryIntoDatabase(String csvFileName, Month month, Year year) {
 
-    public void InsertEmployeeSalaryIntoDatabase(String fullCSVName, int month, int year){
-        try(BufferedReader br = new BufferedReader(new FileReader(fullCSVName)))
+        final String RESOURCE = "./src/main/resources/csv/" + csvFileName;
+        final String SPLIT_BY = ",";
+        String line = "";
+
+        try(BufferedReader br = new BufferedReader(new FileReader(RESOURCE)))
         {
             String[] header = br.readLine().split(SPLIT_BY);
 
@@ -43,7 +38,13 @@ public class CSVDatabaseInserter  {
             while ((line = br.readLine()) != null)
             {
                 String[] employee = line.split(SPLIT_BY);
-                employeeSalaryService.addEmployeeSalary(employee[0].replace("\"", ""), Double.parseDouble(employee[1]), month, year);
+
+                if(!employeeSalaryService.checkIfEmployeeExists(employee[0].replace("\"", ""), month, year)){
+                    employeeSalaryService.addEmployeeSalary(employee[0].replace("\"", "")
+                            , Double.parseDouble(employee[1])
+                            , month
+                            , year);
+                }
 
             }
         }
@@ -53,9 +54,14 @@ public class CSVDatabaseInserter  {
         }
     }
 
+    public void insertExchangeRateIntoDatabase(String csvFileName) {
 
-    public void InsertExchangeRateIntoDatabase(String fullCSVName){
-        try(BufferedReader br = new BufferedReader(new FileReader(fullCSVName)))
+        final String RESOURCE = "./src/main/resources/csv/" + csvFileName;
+        final String SPLIT_BY = ",";
+        String line = "";
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("M/d/yyyy");
+
+        try(BufferedReader br = new BufferedReader(new FileReader(RESOURCE)))
         {
             String[] header = br.readLine().split(SPLIT_BY);
 
@@ -66,18 +72,17 @@ public class CSVDatabaseInserter  {
             while ((line = br.readLine()) != null)
             {
                 String[] exchangeRate = line.split(SPLIT_BY);
+                LocalDate localDate = LocalDate.parse(exchangeRate[0].split(" ")[0].substring(1), formatter);
 
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(new SimpleDateFormat("MM/dd/yyyy")
-                        .parse(exchangeRate[0].split(" ")[0].substring(1)));
-
-                employeeExchangeRateService.addExchangeRate(
-                        cal,
-                        Double.parseDouble(exchangeRate[1]));
+                if(!employeeExchangeRateService.checkIfExchangeRateExists(localDate, Double.parseDouble(exchangeRate[1]))){
+                    employeeExchangeRateService.addExchangeRate(
+                            localDate,
+                            Double.parseDouble(exchangeRate[1]));
+                }
 
             }
         }
-        catch (IOException | ParseException e)
+        catch (IOException e)
         {
             e.printStackTrace();
         }
@@ -92,11 +97,7 @@ public class CSVDatabaseInserter  {
             return false;
         }
 
-        if(!header[0].equals(FIRST_HEADER) && !header[1].equals(SECOND_HEADER)){
-            return false;
-        }
-
-        return true;
+        return header[0].equals(FIRST_HEADER) || header[1].equals(SECOND_HEADER);
     }
 
     private boolean checkHeaderForExchangeRate(String[] header){
@@ -110,13 +111,9 @@ public class CSVDatabaseInserter  {
             return false;
         }
 
-        if(!header[0].equals(FIRST_HEADER)
-                && !header[1].equals(SECOND_HEADER)
-                && !header[2].equals(THIRD_HEADER)
-                && !header[3].equals(FOURTH_HEADER)){
-            return false;
-        }
-
-        return true;
+        return header[0].equals(FIRST_HEADER)
+                || header[1].equals(SECOND_HEADER)
+                || header[2].equals(THIRD_HEADER)
+                || header[3].equals(FOURTH_HEADER);
     }
 }

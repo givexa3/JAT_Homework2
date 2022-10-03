@@ -2,14 +2,22 @@ package com.example.homework.model;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 import javax.persistence.*;
+import java.time.Month;
+import java.time.Year;
 
 @Entity
 @Getter
 @Setter
-@Table(name = "EmployeeSalary")
-public class EmployeeSalary extends BaseEntity{
+@ToString
+@Table(name = "employeeSalary")
+public class EmployeeSalary{
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
 
     @Column(name = "fullName", nullable = false, length = 60)
     private String fullName;
@@ -17,21 +25,10 @@ public class EmployeeSalary extends BaseEntity{
     @Column(name = "salary", nullable = false)
     private double salary;
 
-    @Column(name = "salary_month", nullable = false)
-    private int month;
+    @Column(name = "month", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Month month;
 
-    @Column(name = "salary_year", nullable = false)
-    private int year;
-
-    @Override
-    public String toString() {
-        return "EmployeeSalary{" +
-                "ID: " + getId() +
-                ", full_name = '" + getFullName() + '\'' +
-                ", salary = " + getSalary() + '\'' +
-                ", month = " + getMonth() + '\'' +
-                ", year = " + getYear() + '\'' +
-                '}';
-    }
-
+    @Column(name = "year", nullable = false)
+    private Year year;
 }

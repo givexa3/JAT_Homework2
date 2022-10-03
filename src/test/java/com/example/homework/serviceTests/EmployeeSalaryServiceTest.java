@@ -6,20 +6,17 @@ import com.example.homework.mapper.EmployeeSalaryMapper;
 import com.example.homework.repository.EmployeeSalaryRepository;
 import com.example.homework.service.serviceImpl.EmployeeSalaryService;
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.Rollback;
-import org.springframework.test.context.junit4.SpringRunner;
 
-import javax.transaction.Transactional;
+import java.math.BigDecimal;
+import java.time.Month;
+import java.time.Year;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-@RunWith(SpringRunner.class)
 class EmployeeSalaryServiceTest {
 
     @Autowired
@@ -33,25 +30,24 @@ class EmployeeSalaryServiceTest {
     @Test
     void addEmployeeSalary() {
 
-        //Needs rollback for, because each time we should not create new instances in db
-        //tried by can not do it ask experts
-        //xd
+        final String FULL_NAME = "TEST";
+        final double SALARY = 0;
+        final Month MONTH = Month.MAY;
+        final Year YEAR = Year.of(0);
+        final int EXPECTED_VALUE = 1;
 
-        EmployeeSalaryDTO e = new EmployeeSalaryDTO();
-        e.setFullName("TEST");
-        e.setSalary(0);
-        e.setMonth(0);
-        e.setYear(0);
-        employeeSalaryRepository.save(employeeSalaryMapper.dtoToEntity(e));
+        if(!employeeSalaryService.checkIfEmployeeExists(FULL_NAME, MONTH, YEAR)){
+            employeeSalaryService.addEmployeeSalary(FULL_NAME, SALARY, MONTH, YEAR);
+        }
 
-        assertEquals(1, employeeSalaryRepository.findByFullName("TEST").size());
+        assertEquals(EXPECTED_VALUE, employeeSalaryRepository.findByFullName(FULL_NAME).size());
 
     }
 
     @Test
     void getAllEmployeeSalaryInGEL() {
 
-        final int MONTH = 3;
+        final Month MONTH = Month.MARCH;
 
         List<EmployeeSalaryDTO> employeeSalaryList = employeeSalaryService.getAllEmployeeSalaryInGEL(MONTH);
 
@@ -65,12 +61,10 @@ class EmployeeSalaryServiceTest {
 
         List<EmployeeMonthAVGSalaryDTO> employeeMonthSalaries = employeeSalaryService.getAllMonthAverageSalaryInGel();
 
-        //also change floating decimal to instead of 6233.833333 to 6233.83
-        //also casting ins not good here try to make rounding 6233.83 of double..
-        //but ask experts is changing floating decimal happening in backend or front end?
-        assertEquals(6233, (int) employeeMonthSalaries.get(0).getAverageMonthSalaryGel());
-        assertEquals(5797, (int) employeeMonthSalaries.get(1).getAverageMonthSalaryGel());
-        assertEquals(5605, employeeMonthSalaries.get(3).getAverageMonthSalaryGel());
+        BigDecimal Expected = BigDecimal.valueOf(6233.84);
+
+        assertEquals(Expected, employeeMonthSalaries.get(0).getAverageMonthSalaryGel());
+
     }
 
 }

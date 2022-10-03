@@ -1,30 +1,31 @@
 package com.example.homework.model;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.*;
-import java.util.Calendar;
+import java.time.LocalDate;
 
 
 @Entity
 @Getter
 @Setter
-@Table(name = "ExchangeRate")
-public class EmployeeExchangeRate extends BaseEntity {
+@Table(name = "exchangeRate")
+public class EmployeeExchangeRate {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
 
-    @Temporal(TemporalType.DATE)
     @Column(name = "date", nullable = false)
-    private Calendar date;
+    private LocalDate date;
 
     @Column(name = "rate", nullable = false)
     private double rate;
 
-    @Column(name = "isoCodeFrom")
+    @Column(name = "iso_Code_From")
     private String isoCodeFrom = "USD";
 
-    @Column(name = "isoCodeTo")
+    @Column(name = "iso_Code_To")
     private String isoCodeTo = "GEL";
 }

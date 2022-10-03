@@ -1,10 +1,10 @@
 package com.example.homework.service.serviceImpl;
 
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.util.Calendar;
-import java.util.Date;
+import java.time.Month;
 
 public interface EmployeeExchangeRateService {
-    void addExchangeRate(Calendar date, double rate);
+    void addExchangeRate(LocalDate date, double rate);
+    double getExchangeRate(Month month);
+    boolean checkIfExchangeRateExists(LocalDate date, double rate);
 }

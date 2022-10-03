@@ -3,15 +3,17 @@ package com.example.homework.service.serviceImpl.serviceImpl;
 import com.example.homework.dtos.EmployeeMonthAVGSalaryDTO;
 import com.example.homework.dtos.EmployeeSalaryDTO;
 import com.example.homework.mapper.EmployeeSalaryMapper;
-import com.example.homework.model.EmployeeExchangeRate;
 import com.example.homework.model.EmployeeSalary;
-import com.example.homework.repository.EmployeeExchangeRateRepository;
 import com.example.homework.repository.EmployeeSalaryRepository;
+import com.example.homework.service.serviceImpl.EmployeeExchangeRateService;
 import com.example.homework.service.serviceImpl.EmployeeSalaryService;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Month;
+import java.time.Year;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -19,40 +21,40 @@ import java.util.stream.Collectors;
 @Service
 public class EmployeeSalaryImpl implements EmployeeSalaryService {
 
-    private EmployeeSalaryRepository employeeSalaryRepository;
-    private EmployeeExchangeRateRepository exchangeRateRepository;
+    private final EmployeeSalaryRepository employeeSalaryRepository;
+    private final EmployeeExchangeRateService employeeExchangeRateService;
 
-    private EmployeeSalaryMapper employeeSalaryMapper;
+    private final EmployeeSalaryMapper employeeSalaryMapper;
 
     public EmployeeSalaryImpl(EmployeeSalaryRepository employeeSalaryRepository,
-                              EmployeeExchangeRateRepository exchangeRateRepository,
+                              EmployeeExchangeRateService employeeExchangeRateService,
                               EmployeeSalaryMapper employeeSalaryMapper) {
         this.employeeSalaryRepository = employeeSalaryRepository;
-        this.exchangeRateRepository = exchangeRateRepository;
+        this.employeeExchangeRateService = employeeExchangeRateService;
         this.employeeSalaryMapper = employeeSalaryMapper;
     }
 
-
     @Override
-    public void addEmployeeSalary(String fullName, double salary, int month, int year) {
-        EmployeeSalaryDTO e = new EmployeeSalaryDTO();
-        e.setFullName(fullName);
-        e.setSalary(salary);
-        e.setMonth(month);
-        e.setYear(year);
-        employeeSalaryRepository.save(employeeSalaryMapper.dtoToEntity(e));
+    public void addEmployeeSalary(String fullName, double salary, Month month, Year year) {
+        EmployeeSalaryDTO employeeSalaryDTO = new EmployeeSalaryDTO();
+        employeeSalaryDTO.setFullName(fullName);
+        employeeSalaryDTO.setSalary(salary);
+        employeeSalaryDTO.setMonth(month);
+        employeeSalaryDTO.setYear(year);
+        employeeSalaryRepository.save(employeeSalaryMapper.dtoToEntity(employeeSalaryDTO));
     }
 
-    @Override
-    public List<EmployeeSalaryDTO> getAllEmployeeSalaryInGEL(int month) {
 
-        return employeeSalaryRepository.findBySalaryMonth(month)
+    @Override
+    public List<EmployeeSalaryDTO> getAllEmployeeSalaryInGEL(Month month) {
+
+        return employeeSalaryRepository.findByMonth(month)
                 .stream()
                 .map(e -> {
-                    e.setSalary(getExchangeRate(month) * e.getSalary());
+                    e.setSalary(employeeExchangeRateService.getExchangeRate(month) * e.getSalary());
                     return e;
                 })
-                .map(e -> employeeSalaryMapper.entityToDto(e))
+                .map(employeeSalaryMapper::entityToDto)
                 .collect(Collectors.toList());
 
     }
@@ -67,21 +69,21 @@ public class EmployeeSalaryImpl implements EmployeeSalaryService {
 
         for (int i = FIRST_MONTH; i <= LAST_MONTH; i++) {
 
-            if(checkIfSalaryMonthExists(i)){
+            if(checkIfSalaryMonthExists(Month.of(i))){
 
-                double exchangeRate = getExchangeRate(i);
-                double averageOfGivenMonth =
-                        employeeSalaryRepository
-                                .findBySalaryMonth(i)
+                double exchangeRate = employeeExchangeRateService.getExchangeRate(Month.of(i));
+                BigDecimal averageOfGivenMonth =
+                        BigDecimal.valueOf(employeeSalaryRepository
+                                .findByMonth(Month.of(i))
                                 .stream()
                                 .mapToDouble(e -> e.getSalary() * exchangeRate)
                                 .average()
-                                .orElse(0);
+                                .orElse(0));
 
-                EmployeeMonthAVGSalaryDTO e = new EmployeeMonthAVGSalaryDTO();
-                e.setMonth(i);
-                e.setAverageMonthSalaryGel(averageOfGivenMonth);
-                employeeMonthSalaries.add(e);
+                EmployeeMonthAVGSalaryDTO employeeMonthAVGSalaryDTO = new EmployeeMonthAVGSalaryDTO();
+                employeeMonthAVGSalaryDTO.setMonth(Month.of(i));
+                employeeMonthAVGSalaryDTO.setAverageMonthSalaryGel(averageOfGivenMonth.setScale(2, RoundingMode.CEILING));
+                employeeMonthSalaries.add(employeeMonthAVGSalaryDTO);
 
             }
 
@@ -89,40 +91,16 @@ public class EmployeeSalaryImpl implements EmployeeSalaryService {
         return employeeMonthSalaries;
     }
 
-    private double getExchangeRate(int month) {
-
-        int exchangeRateDay = 7;
-        final int EXCHANGE_RATE_DOWN = 0;
-
-        Calendar cal = Calendar.getInstance();
-
-        for (int i = exchangeRateDay; i > EXCHANGE_RATE_DOWN ; i--) {
-
-            cal.set(2022, month-1, exchangeRateDay);
-
-            Optional<EmployeeExchangeRate> foundExchangeRate =
-                    Optional.ofNullable(exchangeRateRepository.findByDate(cal));
-
-            if(foundExchangeRate.isPresent()){
-                return foundExchangeRate.get().getRate();
-            }
-
-            exchangeRateDay--;
-        }
-
-        return 0;
+    @Override
+    public boolean checkIfEmployeeExists(String fullName, Month month, Year year) {
+        return employeeSalaryRepository.existsByFullNameAndMonthAndYear(fullName, month, year);
     }
 
-    private boolean checkIfSalaryMonthExists(int month){
+    private boolean checkIfSalaryMonthExists(Month month){
         Optional<List<EmployeeSalary>> foundEmployeeSalary =
-                Optional.ofNullable(employeeSalaryRepository.findBySalaryMonth(month));
+                Optional.of(employeeSalaryRepository.findByMonth(month));
 
-        // should be re implemented :D
-        if(foundEmployeeSalary.get().size() > 0){
-            return true;
-        }
-
-        return false;
+        return !foundEmployeeSalary.get().isEmpty();
     }
 
 }
